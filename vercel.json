@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/port/5000/api/:path*", "destination": "/api/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

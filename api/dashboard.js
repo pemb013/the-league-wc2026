@@ -1,4 +1,4 @@
-// /api/dashboard — corrected data layer for "The League"
+// /api/dashboard — corrected data layer for "World Cup 2026 Group"
 // Frontend is unchanged; this restores the picks (authoritative) and serves
 // live FIFA World Cup 2026 results from football-data.org, exactly as before.
 // If no API key is set or the live fetch fails, it falls back to an embedded
@@ -1540,3 +1540,27 @@ async function fetchLive(key) {
 // viewers/refreshes don't blow the free-tier rate limit; (2) if a live fetch fails,
 // we fall back to the last good data instead of the ancient embedded SNAPSHOT.
 let LIVE_CACHE = { results: null, ts: 0 };
+const LIVE_TTL_MS = 20000;
+
+module.exports = async (req, res) => {
+  const key = process.env.FOOTBALL_DATA_API_KEY || process.env.FOOTBALL_DATA_TOKEN || process.env.FOOTBALL_API_KEY;
+  let results;
+  const fresh = LIVE_CACHE.results && (Date.now() - LIVE_CACHE.ts < LIVE_TTL_MS);
+  if (fresh) {
+    results = LIVE_CACHE.results;
+  } else if (key) {
+    try {
+      results = await fetchLive(key);
+      LIVE_CACHE = { results, ts: Date.now() };
+    } catch (e) {
+      results = LIVE_CACHE.results || SNAPSHOT;
+    }
+  } else {
+    results = LIVE_CACHE.results || SNAPSHOT;
+  }
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  // Edge-cache ~20s and serve stale while revalidating: shields the upstream rate limit
+  // when many people watch, and smooths over transient hiccups. Browsers still revalidate.
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=20, stale-while-revalidate=60");
+  res.status(200).send(JSON.stringify(buildPayload(results)));
+};

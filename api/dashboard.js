@@ -1515,13 +1515,8 @@ async function fetchLive(key) {
   };
 }
 
-module.exports = async (req, res) => {
-  const key = process.env.FOOTBALL_DATA_API_KEY || process.env.FOOTBALL_DATA_TOKEN || process.env.FOOTBALL_API_KEY;
-  let results = SNAPSHOT;
-  if (key) {
-    try { results = await fetchLive(key); } catch (e) { results = SNAPSHOT; }
-  }
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-  res.status(200).send(JSON.stringify(buildPayload(results)));
-};
+// Keep the most recent successful live result in memory. This serves two purposes:
+// (1) within LIVE_TTL_MS we reuse it without re-calling football-data, so bursts of
+// viewers/refreshes don't blow the free-tier rate limit; (2) if a live fetch fails,
+// we fall back to the last good data instead of the ancient embedded SNAPSHOT.
+let LIVE_CACHE = { results: null, ts: 0 };

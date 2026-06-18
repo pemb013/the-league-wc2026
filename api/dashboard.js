@@ -1404,7 +1404,21 @@ const canon = (x) => {
   return ALIASES[s] || s;
 };
 
-function scoreParticipant(p, actualGroups, topScorerGoals) {
+// Normalise a player name for comparison: strip accents, case, punctuation, extra spaces.
+function normName(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z\s]/g,"").replace(/\s+/g," ").trim();
+}
+// Same player if the normalised full names match, or (as a fallback for differing name
+// forms from the feed) the surnames match.
+function nameMatch(a,b){
+  const na=normName(a), nb=normName(b);
+  if(!na || !nb) return false;
+  if(na===nb) return true;
+  const la=na.split(" ").pop(), lb=nb.split(" ").pop();
+  return la===lb && la.length>2;
+}
+
+function scoreParticipant(p, actualGroups, topScorerGoals, topScorerName) {
   let score = 0; const breakdown = [];
   for (const L of GROUPS) {
     const ag = actualGroups[L.toUpperCase()];
@@ -1413,8 +1427,12 @@ function scoreParticipant(p, actualGroups, topScorerGoals) {
       if (canon(p.groups[L + "2"]) === canon(ag.second)) { score++; breakdown.push(`Group ${L.toUpperCase()} 2nd \u2713 +1`); }
     }
   }
-  if (typeof topScorerGoals === "number" && Math.abs((p.goldenBootGoals||0) - topScorerGoals) <= 2) {
-    score++; breakdown.push("Golden Boot goals within 2 \u2713 +1");
+  // Golden Boot: only scores if the predicted player IS the current top scorer AND the
+  // predicted goal tally is within 2 of that player's actual tally. Both must hold.
+  if (typeof topScorerGoals === "number" && topScorerName &&
+      nameMatch(p.goldenBoot, topScorerName) &&
+      Math.abs((p.goldenBootGoals || 0) - topScorerGoals) <= 2) {
+    score++; breakdown.push("Golden Boot player + goals \u2713 +1");
   }
   return { score, breakdown };
 }
@@ -1431,9 +1449,11 @@ const AUS_TOP_SCORERS = [
 
 function buildPayload(results) {
   const participants = PARTICIPANTS.map((p) => ({ ...p }));
-  const tsGoals = results.topScorer && results.topScorer.goals;
+  const ts = results.topScorer || {};
+  const tsGoals = ts.goals;
+  const tsName = ts.player && ts.player.name;
   const leaderboard = participants
-    .map((p) => ({ ...p, ...scoreParticipant(p, results.actualGroups, tsGoals) }))
+    .map((p) => ({ ...p, ...scoreParticipant(p, results.actualGroups, tsGoals, tsName) }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   const out = { participants, leaderboard, ...results };
   if (AUS_TOP_SCORERS && AUS_TOP_SCORERS.length) {

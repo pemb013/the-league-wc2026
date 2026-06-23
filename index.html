@@ -67,6 +67,9 @@
   .lb-main{flex:1;min-width:0}
   .lb-name{font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .chip{font-size:12px;font-weight:600;color:#4b5563;background:#f1f3f6;border:1px solid var(--line);border-radius:999px;padding:2px 9px;display:inline-flex;align-items:center;gap:5px}
+  .paid-badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:999px;display:inline-flex;align-items:center;vertical-align:middle}
+  .paid-badge.paid{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+  .paid-badge.unpaid{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5}
   .chip.pay{color:#92660b;background:#fdf3df;border-color:#f6e6c4}
   .chip.pay .shr{font-weight:600;opacity:.65;font-size:10px;margin-left:2px}
   .lb-detail{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:7px}
@@ -307,11 +310,14 @@ function leaderboard(){
     const payChip = pr ? `<span class="chip pay">$${fmtMoney(pr.amount)}${pr.shared?' <span class="shr">shared</span>':''}</span>` : "";
     const open = OPEN===p.email;
     const e = earnedSet(p);
+    const paidBadge = CONFIG.showPrizePool
+      ? (p.paid===false ? '<span class="paid-badge unpaid">UNPAID</span>' : '<span class="paid-badge paid">PAID</span>')
+      : "";
     return `<div class="lb-row ${cls}" data-email="${esc(p.email)}">
       <div class="lb-top">
         <div class="rank">${medal?`<span class="rmedal">${medal}</span>`:rk}</div>
         <div class="lb-main">
-          <div class="lb-name">${esc(p.name)} ${payChip}<span class="chip">${flag(p.overallWinner)} ${esc(p.overallWinner)} to win</span></div>
+          <div class="lb-name">${esc(p.name)} ${paidBadge} ${payChip}<span class="chip">${flag(p.overallWinner)} ${esc(p.overallWinner)} to win</span></div>
           <div class="lb-detail">
             <span class="d">🧤 ${esc(p.goldenGlove||"—")}</span>
             <span class="d">👟 ${esc(p.goldenBoot||"—")} ${e.has("GB")?plus1():""}</span>

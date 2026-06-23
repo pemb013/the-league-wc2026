@@ -8,6 +8,7 @@ const PARTICIPANTS = [
   {
     "name": "Tom Ricketts",
     "email": "tmricketts86@gmail.com",
+    "paid": true,
     "overallWinner": "France",
     "runnerUp": "Spain",
     "goldenBoot": "Kylian Mbappe",
@@ -46,6 +47,7 @@ const PARTICIPANTS = [
   {
     "name": "Rowan Tape",
     "email": "rtt25@hotmail.com",
+    "paid": true,
     "overallWinner": "Spain",
     "runnerUp": "France",
     "goldenBoot": "Harry Kane",
@@ -84,6 +86,7 @@ const PARTICIPANTS = [
   {
     "name": "Ben Newbery",
     "email": "benjamin.newbery@gmail.com",
+    "paid": true,
     "overallWinner": "England",
     "runnerUp": "Netherlands",
     "goldenBoot": "Kai Havertz",
@@ -122,6 +125,7 @@ const PARTICIPANTS = [
   {
     "name": "Nick Pemberton",
     "email": "nick@pembo.au",
+    "paid": true,
     "overallWinner": "Spain",
     "runnerUp": "France",
     "goldenBoot": "Kylian Mbappe",
@@ -160,6 +164,7 @@ const PARTICIPANTS = [
   {
     "name": "Steve Tieu",
     "email": "steven.tieu85@gmail.com",
+    "paid": true,
     "overallWinner": "Spain",
     "runnerUp": "Brazil",
     "goldenBoot": "Kylian Mbappe",
@@ -198,6 +203,7 @@ const PARTICIPANTS = [
   {
     "name": "Nick Costello",
     "email": "ncostello06@gmail.com",
+    "paid": false,
     "overallWinner": "Spain",
     "runnerUp": "England",
     "goldenBoot": "Harry Kane",
@@ -236,6 +242,7 @@ const PARTICIPANTS = [
   {
     "name": "Kurt Strazdins",
     "email": "kurt@aubeprojects.com.au",
+    "paid": false,
     "overallWinner": "Spain",
     "runnerUp": "England",
     "goldenBoot": "Harry Kane",
@@ -274,6 +281,7 @@ const PARTICIPANTS = [
   {
     "name": "Simon Hains",
     "email": "sdhains@gmail.com",
+    "paid": true,
     "overallWinner": "Argentina",
     "runnerUp": "France",
     "goldenBoot": "Erling Haaland",
@@ -312,6 +320,7 @@ const PARTICIPANTS = [
   {
     "name": "Mark McGregor",
     "email": "Mmcgregor100@gmail.com",
+    "paid": true,
     "overallWinner": "France",
     "runnerUp": "Portugal",
     "goldenBoot": "Harry Kane",

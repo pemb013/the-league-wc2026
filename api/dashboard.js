@@ -203,7 +203,7 @@ const PARTICIPANTS = [
   {
     "name": "Nick Costello",
     "email": "ncostello06@gmail.com",
-    "paid": false,
+    "paid": true,
     "overallWinner": "Spain",
     "runnerUp": "England",
     "goldenBoot": "Harry Kane",

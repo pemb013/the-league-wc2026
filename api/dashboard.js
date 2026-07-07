@@ -1428,7 +1428,7 @@ function nameMatch(a,b){
 }
 
 function scoreParticipant(p, ctx) {
-  const { actualGroups, topScorerGoals, topScorerName, totalGoals, ausGoals, ausTopScorers } = ctx;
+  const { actualGroups, topScorers, totalGoals, ausGoals, ausTopScorers } = ctx;
   let score = 0; const breakdown = [];
   for (const L of GROUPS) {
     const ag = actualGroups[L.toUpperCase()];
@@ -1452,11 +1452,12 @@ function scoreParticipant(p, ctx) {
       ausTopScorers.some((s) => nameMatch(p.ausScorer, s.name))) {
     score++; breakdown.push("Australia top scorer \u2713 +1");
   }
-  // Golden Boot: predicted player IS the current top scorer AND predicted goals within 2.
-  if (typeof topScorerGoals === "number" && topScorerName &&
-      nameMatch(p.goldenBoot, topScorerName) &&
-      Math.abs((p.goldenBootGoals || 0) - topScorerGoals) <= 2) {
-    score++; breakdown.push("Golden Boot player + goals \u2713 +1");
+  // Golden Boot (live): predicted a player who is currently a joint top scorer. Because the
+  // race is live and everyone is predicting a FINAL tally, the point is awarded on the player
+  // being (co-)leader now; the "within 2 goals" accuracy is settled at tournament end.
+  if (p.goldenBoot && Array.isArray(topScorers) && topScorers.length &&
+      topScorers.some((s) => nameMatch(p.goldenBoot, s.name))) {
+    score++; breakdown.push("Golden Boot player \u2713 +1");
   }
   // Golden Glove is decided post-tournament, so it is not scored live.
   return { score, breakdown };
@@ -1474,15 +1475,20 @@ const AUS_TOP_SCORERS = [
 
 function buildPayload(results) {
   const participants = PARTICIPANTS.map((p) => ({ ...p }));
-  const ts = results.topScorer || {};
-  const tsGoals = ts.goals;
-  const tsName = ts.player && ts.player.name;
+  // Current joint top scorers (all players tied at the top of the golden-boot race).
+  let topList = results.topScorerList || [];
+  if (!topList.length && results.topScorers && results.topScorers.length) {
+    const max = results.topScorers[0].goals || 0;
+    topList = results.topScorers.filter((s) => (s.goals || 0) === max).map((s) => ({ name: s.player && s.player.name, goals: s.goals }));
+  }
+  if (!topList.length && results.topScorer && results.topScorer.player) {
+    topList = [{ name: results.topScorer.player.name, goals: results.topScorer.goals }];
+  }
   // Effective Australia top scorers: manual override if set, else the live feed.
   const effAusTop = (AUS_TOP_SCORERS && AUS_TOP_SCORERS.length) ? AUS_TOP_SCORERS : (results.ausTopScorers || []);
   const ctx = {
     actualGroups: results.actualGroups,
-    topScorerGoals: tsGoals,
-    topScorerName: tsName,
+    topScorers: topList,
     totalGoals: results.totalGoalsSoFar,
     ausGoals: results.ausActualGoals,
     ausTopScorers: effAusTop,
@@ -1551,8 +1557,17 @@ async function fetchLive(key) {
     return elapsedMin > capMin;
   };
   const live = ms.filter((m) => ["IN_PLAY", "PAUSED", "LIVE"].includes(m.status) && !staleLive(m));
-  const totalGoalsSoFar = finished.reduce((n, m) =>
-    n + ((m.score && m.score.fullTime && (m.score.fullTime.home || 0) + (m.score.fullTime.away || 0)) || 0), 0);
+  // Real goals in a match, EXCLUDING penalty-shootout goals. football-data's score.fullTime
+  // includes shootout goals for PENALTY_SHOOTOUT matches, so for those use regular + extra time.
+  const matchGoals = (m, side) => {
+    const s = (m && m.score) || {};
+    if (s.penalties && s.penalties[side] != null) {
+      const rt = s.regularTime || {}; const et = s.extraTime || {};
+      return (rt[side] || 0) + (et[side] || 0);
+    }
+    return (s.fullTime && s.fullTime[side]) || 0;
+  };
+  const totalGoalsSoFar = finished.reduce((n, m) => n + matchGoals(m, "home") + matchGoals(m, "away"), 0);
   const sc = (scorers.scorers || [])[0];
   // All players tied at the top goal count (so the Top Scorer widget shows ties, not just one).
   const scAll = scorers.scorers || [];
@@ -1564,9 +1579,8 @@ async function fetchLive(key) {
   // Australia: real tournament goals (sum across finished matches) + top scorer from scorers feed
   const isAus = (n) => n === "Australia";
   const ausGoalsLive = finished.reduce((n, m) => {
-    const ft = (m.score && m.score.fullTime) || {};
-    if (m.homeTeam && isAus(m.homeTeam.name)) return n + (ft.home || 0);
-    if (m.awayTeam && isAus(m.awayTeam.name)) return n + (ft.away || 0);
+    if (m.homeTeam && isAus(m.homeTeam.name)) return n + matchGoals(m, "home");
+    if (m.awayTeam && isAus(m.awayTeam.name)) return n + matchGoals(m, "away");
     return n;
   }, 0);
   const ausScorers = (scorers.scorers || [])

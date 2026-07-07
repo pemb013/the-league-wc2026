@@ -321,9 +321,9 @@ function leaderboard(){
           <div class="lb-detail">
             <span class="d">🧤 ${esc(p.goldenGlove||"—")}</span>
             <span class="d">👟 ${esc(p.goldenBoot||"—")} ${e.has("GB")?plus1():""}</span>
-            <span class="d">⚽ ${p.totalGoals} goals</span>
-            <span class="d">${flag("Australia")} ${p.ausGoals} goals</span>
-            <span class="d">${flag("Australia")}<span class="boot">👟</span> ${esc(p.ausScorer||"—")}</span>
+            <span class="d">⚽ ${p.totalGoals} goals ${e.has("TG")?plus1():""}</span>
+            <span class="d">${flag("Australia")} ${p.ausGoals} goals ${e.has("AG")?plus1():""}</span>
+            <span class="d">${flag("Australia")}<span class="boot">👟</span> ${esc(p.ausScorer||"—")} ${e.has("AS")?plus1():""}</span>
           </div>
         </div>
         <div class="pts"><div class="n">${p.score}</div><div class="u">pts</div></div>
@@ -340,6 +340,9 @@ function earnedSet(p){
     const m = b.match(/Group ([A-L]) (1st|2nd)/);
     if(m) s.add(m[1] + (m[2]==="1st"?"1":"2"));
     if(/Golden Boot/i.test(b)) s.add("GB");
+    if(/Total goals within/i.test(b)) s.add("TG");
+    if(/Australia goals within/i.test(b)) s.add("AG");
+    if(/Australia top scorer/i.test(b)) s.add("AS");
   });
   return s;
 }

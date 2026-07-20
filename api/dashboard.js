@@ -1428,7 +1428,7 @@ function nameMatch(a,b){
 }
 
 function scoreParticipant(p, ctx) {
-  const { actualGroups, topScorers, totalGoals, ausGoals, ausTopScorers } = ctx;
+  const { actualGroups, topScorers, totalGoals, ausGoals, ausTopScorers, winner, glove } = ctx;
   let score = 0; const breakdown = [];
   for (const L of GROUPS) {
     const ag = actualGroups[L.toUpperCase()];
@@ -1437,12 +1437,16 @@ function scoreParticipant(p, ctx) {
       if (canon(p.groups[L + "2"]) === canon(ag.second)) { score++; breakdown.push(`Group ${L.toUpperCase()} 2nd \u2713 +1`); }
     }
   }
-  // Total tournament goals: within 10 of the actual total so far (e.g. pick 260 -> 250..270).
+  // Overall winner: picked the tournament champion.
+  if (p.overallWinner && winner && canon(p.overallWinner) === canon(winner)) {
+    score++; breakdown.push("Tournament winner \u2713 +1");
+  }
+  // Total tournament goals: within 10 of the actual total (e.g. pick 260 -> 250..270).
   if (typeof totalGoals === "number" && typeof p.totalGoals === "number" &&
       Math.abs(p.totalGoals - totalGoals) <= 10) {
     score++; breakdown.push("Total goals within 10 \u2713 +1");
   }
-  // Australia goals: within 2 of Australia's actual goals so far (e.g. pick 4 -> 2..6).
+  // Australia goals: within 2 of Australia's actual goals (e.g. pick 4 -> 2..6).
   if (typeof ausGoals === "number" && typeof p.ausGoals === "number" &&
       Math.abs(p.ausGoals - ausGoals) <= 2) {
     score++; breakdown.push("Australia goals within 2 \u2713 +1");
@@ -1452,14 +1456,15 @@ function scoreParticipant(p, ctx) {
       ausTopScorers.some((s) => nameMatch(p.ausScorer, s.name))) {
     score++; breakdown.push("Australia top scorer \u2713 +1");
   }
-  // Golden Boot (live): predicted a player who is currently a joint top scorer. Because the
-  // race is live and everyone is predicting a FINAL tally, the point is awarded on the player
-  // being (co-)leader now; the "within 2 goals" accuracy is settled at tournament end.
-  if (p.goldenBoot && Array.isArray(topScorers) && topScorers.length &&
+  // Golden Boot: picked the golden-boot winner (a joint top scorer). Goals don't matter.
+  if (p.goldenBoot && topScorers && topScorers.length &&
       topScorers.some((s) => nameMatch(p.goldenBoot, s.name))) {
-    score++; breakdown.push("Golden Boot player \u2713 +1");
+    score++; breakdown.push("Golden Boot \u2713 +1");
   }
-  // Golden Glove is decided post-tournament, so it is not scored live.
+  // Golden Glove: picked the best goalkeeper (set manually — no feed).
+  if (p.goldenGlove && glove && nameMatch(p.goldenGlove, glove)) {
+    score++; breakdown.push("Golden Glove \u2713 +1");
+  }
   return { score, breakdown };
 }
 
@@ -1472,6 +1477,13 @@ const AUS_TOP_SCORERS = [
   { name: "Nestory Irankunda", goals: 1 },
   { name: "Connor Metcalfe", goals: 1 },
 ];
+
+// Best goalkeeper — the free feed has no golden-glove data, so set it manually here at
+// tournament end (null while undecided). nameMatch handles accents/case.
+const GOLDEN_GLOVE = "Unai Simón";
+// Tournament champion — null means "derive from the FINAL match result" (reliable);
+// set a team name here only to override the feed.
+const TOURNAMENT_WINNER = null;
 
 function buildPayload(results) {
   const participants = PARTICIPANTS.map((p) => ({ ...p }));
@@ -1492,6 +1504,8 @@ function buildPayload(results) {
     totalGoals: results.totalGoalsSoFar,
     ausGoals: results.ausActualGoals,
     ausTopScorers: effAusTop,
+    winner: TOURNAMENT_WINNER || results.champion || null,
+    glove: GOLDEN_GLOVE || null,
   };
   const leaderboard = participants
     .map((p) => ({ ...p, ...scoreParticipant(p, ctx) }))
@@ -1568,6 +1582,13 @@ async function fetchLive(key) {
     return (s.fullTime && s.fullTime[side]) || 0;
   };
   const totalGoalsSoFar = finished.reduce((n, m) => n + matchGoals(m, "home") + matchGoals(m, "away"), 0);
+  // Tournament champion: the winner of the FINAL, once it has been played.
+  const finalMatch = finished.find((m) => m.stage === "FINAL");
+  let champion = null;
+  if (finalMatch && finalMatch.score && finalMatch.score.winner) {
+    if (finalMatch.score.winner === "HOME_TEAM") champion = finalMatch.homeTeam && finalMatch.homeTeam.name;
+    else if (finalMatch.score.winner === "AWAY_TEAM") champion = finalMatch.awayTeam && finalMatch.awayTeam.name;
+  }
   const sc = (scorers.scorers || [])[0];
   // All players tied at the top goal count (so the Top Scorer widget shows ties, not just one).
   const scAll = scorers.scorers || [];
@@ -1597,6 +1618,7 @@ async function fetchLive(key) {
     topScorers: (scorers.scorers || []).slice(0, 5).map((s) => ({ player: { name: s.player && s.player.name }, team: { name: s.team && s.team.name }, goals: s.goals })),
     totalGoalsSoFar,
     finishedMatches: finished.length,
+    champion,
     ausActualGoals: ausGoalsLive,
     ausTopScorers: ausTopScorers,
     ausActualScorer: ausTopScorers[0] ? ausTopScorers[0].name : null,

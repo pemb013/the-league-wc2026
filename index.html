@@ -317,9 +317,9 @@ function leaderboard(){
       <div class="lb-top">
         <div class="rank">${medal?`<span class="rmedal">${medal}</span>`:rk}</div>
         <div class="lb-main">
-          <div class="lb-name">${esc(p.name)} ${paidBadge} ${payChip}<span class="chip">${flag(p.overallWinner)} ${esc(p.overallWinner)} to win</span></div>
+          <div class="lb-name">${esc(p.name)} ${paidBadge} ${payChip}<span class="chip">${flag(p.overallWinner)} ${esc(p.overallWinner)} to win</span>${e.has("WIN")?" "+plus1():""}</div>
           <div class="lb-detail">
-            <span class="d">🧤 ${esc(p.goldenGlove||"—")}</span>
+            <span class="d">🧤 ${esc(p.goldenGlove||"—")} ${e.has("GG")?plus1():""}</span>
             <span class="d">👟 ${esc(p.goldenBoot||"—")} ${e.has("GB")?plus1():""}</span>
             <span class="d">⚽ ${p.totalGoals} goals ${e.has("TG")?plus1():""}</span>
             <span class="d">${flag("Australia")} ${p.ausGoals} goals ${e.has("AG")?plus1():""}</span>
@@ -343,6 +343,8 @@ function earnedSet(p){
     if(/Total goals within/i.test(b)) s.add("TG");
     if(/Australia goals within/i.test(b)) s.add("AG");
     if(/Australia top scorer/i.test(b)) s.add("AS");
+    if(/Golden Glove/i.test(b)) s.add("GG");
+    if(/Tournament winner/i.test(b)) s.add("WIN");
   });
   return s;
 }
